@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "Carry a villager in a bucket without losing its identity or saved state."
 authors = ["Strawberry Interactive LLC"]
-license = "LicenseRef-All-Rights-Reserved"
+license = "LicenseRef-Strawberry-Source-Available-1.0"
 publish = false
 
 [lib]
