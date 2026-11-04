@@ -1,0 +1,8 @@
+description=Transportez un villager dans un bucket.
+permission=Capturer et relâcher un villager avec un bucket.
+blocked=Villager Bucket est désactivé : cette version nécessite encore les snapshots complets de villager et leur retrait vérifié. Aucun villager ni item n'a été modifié.
+bucket_name=Villager dans un Bucket
+bucket_lore=Clic droit sur un block pour relâcher ce villager.
+bucket_state=Ce bucket conserve les données originales du villager.
+limit_crash=Un crash du serveur après le retrait du villager et avant la remise du bucket peut faire perdre ce villager.
+limit_creative=Une copie en creative mode d'un bucket occupé peut créer un autre villager. Cela est autorisé.

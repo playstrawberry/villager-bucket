@@ -1,0 +1,8 @@
+description=Bir villager'ı bucket içinde taşı.
+permission=Bucket ile villager'i al ve geri birak.
+blocked=Villager Bucket etkin değil: bu build için eksiksiz villager snapshot ve sonucu doğrulanan kaldırma desteği gerekiyor. Hiçbir villager veya item değiştirilmedi.
+bucket_name=Bucket İçinde Villager
+bucket_lore=Bu villager'ı bırakmak için bir block'a sağ tıkla.
+bucket_state=Bu bucket villager'ın kayıtlı durumunu aynen korur.
+limit_crash=Villager kaldırıldıktan sonra bucket verilmeden server crash olursa o villager kaybolabilir.
+limit_creative=Creative mode ile dolu bucket kopyalanırsa başka bir villager oluşabilir. Buna izin verilir.

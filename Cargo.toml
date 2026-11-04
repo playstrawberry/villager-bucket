@@ -1,0 +1,18 @@
+[package]
+name = "villager-bucket"
+version = "0.1.0"
+edition = "2024"
+description = "Carry a villager in a bucket without losing its identity or saved state."
+authors = ["Strawberry Interactive LLC"]
+license = "LicenseRef-All-Rights-Reserved"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+strawberry-plugin-api = { path = "../strawberry-plugin-api" }
+custom-models-api = { path = "../custom-models-api" }
+
+# A repository of its own, not a member of a larger workspace.
+[workspace]
