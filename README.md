@@ -46,13 +46,20 @@ from this source does not load on them.
 
 ## Build from source
 
-You need Rust with the `wasm32-wasip2` target, the Strawberry plugin SDK
-(`strawberry-plugin-api`), which Play Strawberry gives to its plugin developers, and the
-`custom-models-api` library. Put both in folders next to this one (`strawberry-plugin-api` and
-`custom-models-api`), or change their paths in `Cargo.toml`.
+You need Rust with the `wasm32-wasip2` target and the Strawberry plugin SDK
+(`strawberry-plugin-api`), which Play Strawberry gives to its plugin developers.
+`Cargo.toml` takes it from the SDK registry named `strawberry`; add that registry to
+your Cargo configuration (for example `~/.cargo/config.toml`):
+
+```toml
+[registries.strawberry]
+index = "sparse+https://sdk.playstrawberry.net/index/"
+```
+
+The `custom-models-api` library is in `libs/custom-models-api`; `cargo test --workspace` runs its tests too.
 
 ```text
-cargo test
+cargo test --workspace
 cargo build --release --target wasm32-wasip2
 ```
 
