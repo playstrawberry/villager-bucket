@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 description = "Typed calls for Strawberry plugins that use custom-models: register your models, give them, read them."
 authors = ["Strawberry Interactive LLC"]
-license = "LicenseRef-All-Rights-Reserved"
+license = "LicenseRef-Strawberry-Source-Available-1.0"
 publish = false
 
 [dependencies]
-strawberry-plugin-api = { version = "=0.2.1", registry = "strawberry" }
+strawberry-plugin-api = { version = "=0.2.2", registry = "strawberry" }

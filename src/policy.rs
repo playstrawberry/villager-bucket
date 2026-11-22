@@ -7,6 +7,36 @@ pub enum Denial {
     Full,
     Invalid,
     Obstructed,
+    /// An invulnerable, AI-disabled or unaware villager: usually one a plugin manages.
+    Protected,
+    /// The server refused to make a villager from the bucket's record; the bucket is kept.
+    Refused(Refusal),
+}
+
+/// Why a release made no villager.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Refusal {
+    /// The record is not a villager's, too large, malformed or from a newer server.
+    Damaged,
+    /// A protection or other plugin cancelled the spawn.
+    Cancelled,
+}
+
+impl Denial {
+    /// The catalog key of what the player is told, if anything. Cancelled actions are
+    /// explained by whoever cancelled them; stale ones need no word.
+    pub fn message(self) -> Option<&'static str> {
+        match self {
+            Self::Unsupported | Self::Cancelled | Self::Stale => None,
+            Self::Permission => Some("denied_permission"),
+            Self::Full => Some("denied_full"),
+            Self::Invalid => Some("denied_invalid"),
+            Self::Obstructed => Some("denied_obstructed"),
+            Self::Protected => Some("denied_protected"),
+            Self::Refused(Refusal::Damaged) => Some("refused_damaged"),
+            Self::Refused(Refusal::Cancelled) => Some("refused_cancelled"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

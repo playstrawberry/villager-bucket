@@ -1,8 +1,14 @@
 description=Carry a villager in a bucket.
 permission=Capture and release a villager with a bucket.
-blocked=Villager Bucket is not enabled: this build still needs complete villager snapshots and checked removal support. No villagers or items were changed.
 bucket_name=Villager in a Bucket
 bucket_lore=Right-click a block to release this villager.
 bucket_state=This bucket holds the villager's original saved state.
 limit_crash=A server crash after removing the villager and before giving the bucket can lose that villager.
 limit_creative=A creative-mode copy of an occupied bucket can create another villager. This is allowed.
+denied_permission=You may not pick up or release villagers with a bucket.
+denied_full=Make room in your inventory first. The villager was not picked up.
+denied_invalid=This bucket cannot be used like that. Nothing was changed.
+denied_obstructed=There is no room for the villager there. The bucket was kept.
+denied_protected=This villager cannot be picked up.
+refused_damaged=The villager could not be released: the data in this bucket is damaged or was changed. The bucket was kept.
+refused_cancelled=The villager could not be released here: the server did not allow it. The bucket was kept.

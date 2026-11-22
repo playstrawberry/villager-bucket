@@ -1,72 +1,49 @@
-# Villager Bucket
+# villager-bucket
 
-Carry a villager in a bucket without losing it: its profession, level, experience, trades, gossip,
-type, age and name stay with it.
+Carry a villager in a bucket without losing its identity or saved state.
 
-**Status: not active yet.** The plugin waits for a server update that lets it save a whole
-villager and remove it safely. Until then it loads, says in the console what it is waiting for, and
-changes nothing in the game.
+A script for Play Strawberry servers, by Strawberry Interactive LLC. Its texts are in English, French, Spanish and Turkish.
 
-## How it will play
 
-- Right-click a villager with an empty bucket, in either hand, to pick it up.
-- Right-click a block with the filled bucket to place the villager next to that face; you get the
-  empty bucket back.
-- A full inventory refuses the pickup before the villager is touched.
-- Only villagers: not wandering traders or zombie villagers.
-- Normal protection plugins can refuse a pickup or a placement.
+## An example of working with custom-models
 
-Known limits:
+Play Strawberry has a script, `custom-models`, for items with their own look. That script is not part of this repository,
+and neither is how it builds the resource pack. This script shows how another script works with it:
 
-- In creative mode a filled bucket can be copied, and each copy places a villager.
-- A server crash between taking the villager and giving the bucket can lose that villager.
-
-## Commands, permission and settings
-
-- Commands: none.
-- Permission: `villager-bucket:use`, for everyone by default, to pick up and to place. It is
-  registered once the plugin is active.
-- Settings: none.
-- Needs the Play Strawberry custom models plugin on the server, loaded first; it shows the filled
-  bucket with its own texture (`models/villager_bucket.png`). When the model cannot be shown, a
-  normal bucket with a name and lore is used.
-
-## Languages
-
-English, French, Spanish and Turkish, chosen by each player's game language (`lang/`).
+- `libs/custom-models-api` is the typed calls a script sends to `custom-models`: the model it registers, the item it gives
+  to a player, the model id it reads from a stack. It holds no code of `custom-models` itself.
+- `src/models.rs` registers one model when the script loads: a name, its names in four languages, a texture, the base
+  item and the stack size. Once the model is registered and in the server's resource pack, `give` and `hand` hand the item
+  to a player; `model_id` tells whether a stack is the script's own.
+- When `custom-models` is not on the server, or the model is not in the pack yet, the script falls back to a plain bucket
+  item and nothing is lost: every call answers an error kind the caller can act on.
 
 ## Install on a Play Strawberry server
 
-1. Add Villager Bucket to your server in the Play Strawberry panel, together with the custom models
-   plugin.
-2. Restart the server.
-
-Play Strawberry servers load only plugins signed by Play Strawberry, so a file you build yourself
-from this source loads only on your own Play Strawberry developer server.
+Add it to your server in the Play Strawberry panel and restart the server. Play Strawberry servers load only scripts
+delivered by Play Strawberry, so a file you build yourself from this source loads only on your own Play Strawberry
+developer server.
 
 ## Build from source
 
-You need Rust with the `wasm32-wasip2` target and the Strawberry plugin SDK
-(`strawberry-plugin-api`), which Play Strawberry gives to its plugin developers.
-`Cargo.toml` takes it from the SDK registry named `strawberry`; add that registry to
-your Cargo configuration (for example `~/.cargo/config.toml`):
+You need Rust with the `wasm32-wasip2` target and the Strawberry plugin SDK (`strawberry-plugin-api`), which Play
+Strawberry gives to its script developers. `Cargo.toml` takes it from the SDK registry named `strawberry`; add that
+registry to your Cargo configuration (for example `~/.cargo/config.toml`):
 
-To get the SDK, accept its licence at https://panel.playstrawberry.net/strawberry/sdk; the page gives you a
-token for `cargo login --registry strawberry`.
+The registry is open and needs no key. Accept the SDK licence on https://playstrawberry.net/docs/get-started/get-the-sdk
+before you fetch the SDK.
 
 ```toml
 [registries.strawberry]
 index = "sparse+https://sdk.playstrawberry.net/index/"
 ```
 
-The `custom-models-api` library is in `libs/custom-models-api`; `cargo test --workspace` runs its tests too.
-
 ```text
-cargo test --workspace
+cargo test
 cargo build --release --target wasm32-wasip2
 ```
 
-The plugin file is `target/wasm32-wasip2/release/villager_bucket.wasm`.
+The script file is `target/wasm32-wasip2/release/villager_bucket.wasm`.
 
 ## License
 

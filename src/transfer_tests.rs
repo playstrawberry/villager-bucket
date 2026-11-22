@@ -1,10 +1,10 @@
-//! Tests of the real dispatcher against a small operation adapter, not server
+//! Tests of the real dispatcher against a small operation adapter, NOT engine
 //! concurrency/persistence acceptance. No fake snapshot codec or production ledger.
 use std::sync::{Arc, Barrier, Mutex};
 
 use crate::{
     exchange::{BucketHost, EventKey, handle},
-    policy::{Denial, Face, Hand, Interaction, Item, Plan, Target},
+    policy::{Denial, Face, Hand, Interaction, Item, Plan, Refusal, Target},
 };
 
 const STATE: &[u8] = br#"{"profession":"librarian","level":4,"xp":180,"type":"swamp","age":-24000,"name":"Test Villager","offers":[{"uses":3,"maxUses":4,"price":7}],"gossips":[{"reputation":25}]}"#;
@@ -23,6 +23,7 @@ struct Probe {
     prepare_error: Option<Denial>,
     fail_at: Option<&'static str>,
     prepared_barrier: Option<Arc<Barrier>>,
+    spawn_refusal: Option<Refusal>,
 }
 
 impl Probe {
@@ -45,6 +46,7 @@ impl Probe {
             prepare_error: None,
             fail_at: None,
             prepared_barrier: None,
+            spawn_refusal: None,
         }
     }
 
@@ -108,16 +110,29 @@ impl BucketHost for Probe {
         Ok(())
     }
 
-    fn consume_bucket(&mut self, _prepared: &Prepared) -> Result<bool, Denial> {
-        self.stage("consume")?;
-        let consumed = self.held.take().is_some();
+    fn take_bucket(&mut self, prepared: &Prepared) -> Result<bool, Denial> {
+        self.stage("take")?;
+        if self.held.as_deref() != Some(prepared.state.as_slice()) {
+            return Ok(false);
+        }
+        self.held = None;
         self.view.item = Item::EmptyBucket { count: 1 };
-        Ok(consumed)
+        Ok(true)
     }
 
-    fn spawn_villager(&mut self, prepared: Prepared) -> Result<(), Denial> {
+    fn spawn_villager(&mut self, prepared: &Prepared) -> Result<(), Denial> {
         self.stage("spawn")?;
-        self.spawned.push(prepared.state);
+        if let Some(refusal) = self.spawn_refusal {
+            return Err(Denial::Refused(refusal));
+        }
+        self.spawned.push(prepared.state.clone());
+        Ok(())
+    }
+
+    fn return_bucket(&mut self, prepared: Prepared) -> Result<(), Denial> {
+        self.stage("return")?;
+        self.held = Some(prepared.state);
+        self.view.item = Item::OccupiedBucket { count: 1 };
         Ok(())
     }
 }
@@ -199,13 +214,63 @@ fn double_click_capture_does_not_produce_a_second_bucket() {
 }
 
 #[test]
-fn release_consumes_before_spawning_and_second_click_cannot_repeat_it() {
+fn release_takes_the_bucket_then_spawns_and_second_click_cannot_repeat_it() {
     let mut host = Probe::release();
     assert_eq!(handle(&mut host, EventKey(1)), Ok(true));
-    assert_eq!(host.trace, ["prepare", "cancel", "consume", "spawn"]);
+    assert_eq!(host.trace, ["prepare", "cancel", "take", "spawn"]);
     assert_eq!(host.spawned, [STATE]);
+    assert!(host.held.is_none());
     assert_eq!(handle(&mut host, EventKey(2)), Ok(false));
     assert_eq!(host.spawned.len(), 1);
+}
+
+#[test]
+fn a_refused_record_keeps_the_bucket_and_spawns_nothing() {
+    for refusal in [Refusal::Damaged, Refusal::Cancelled] {
+        let mut host = Probe::release();
+        host.spawn_refusal = Some(refusal);
+        assert_eq!(
+            handle(&mut host, EventKey(1)),
+            Err(Denial::Refused(refusal))
+        );
+        assert_eq!(host.trace, ["prepare", "cancel", "take", "spawn", "return"]);
+        assert!(host.spawned.is_empty());
+        assert_eq!(host.held.as_deref(), Some(STATE));
+        // The kept bucket still works once the reason is gone.
+        host.spawn_refusal = None;
+        host.trace.clear();
+        assert_eq!(handle(&mut host, EventKey(2)), Ok(true));
+        assert_eq!(host.spawned, [STATE]);
+    }
+}
+
+#[test]
+fn a_bucket_that_left_the_hand_after_preparation_is_neither_taken_nor_spawned() {
+    let mut host = Probe::release();
+    let prepared = host.prepare(
+        EventKey(1),
+        Plan::Release {
+            hand: Hand::Main,
+            destination: [1, 65, 2],
+        },
+    );
+    let prepared = prepared.expect("prepared");
+    host.held = None;
+    assert_eq!(host.take_bucket(&prepared), Ok(false));
+    assert!(host.spawned.is_empty());
+}
+
+#[test]
+fn a_losing_removal_gives_nothing_and_keeps_the_empty_bucket() {
+    let mut host = Probe::capture();
+    let prepared = host
+        .prepare(EventKey(1), Plan::Capture { hand: Hand::Main })
+        .expect("prepared");
+    // Another player's removal wins between this snapshot and this removal.
+    host.source.lock().unwrap().take();
+    assert_eq!(host.try_remove(&prepared), Ok(false));
+    assert!(host.buckets.is_empty());
+    assert_eq!(host.view.item, Item::EmptyBucket { count: 1 });
 }
 
 #[test]
@@ -246,7 +311,7 @@ fn death_or_disconnect_before_the_action_is_inert() {
 }
 
 #[test]
-fn disconnect_or_failure_after_removal_can_lose_but_never_compensates_or_retries() {
+fn a_failure_after_removal_is_never_retried_or_compensated_with_a_spawn() {
     let mut host = Probe::capture();
     host.fail_at = Some("give");
     assert_eq!(handle(&mut host, EventKey(1)), Err(Denial::Stale));
@@ -256,12 +321,13 @@ fn disconnect_or_failure_after_removal_can_lose_but_never_compensates_or_retries
 }
 
 #[test]
-fn failure_after_consumption_does_not_spawn_again_or_restore_a_copied_source() {
+fn a_failed_take_spawns_nothing() {
     let mut host = Probe::release();
-    host.fail_at = Some("spawn");
+    host.fail_at = Some("take");
     assert_eq!(handle(&mut host, EventKey(1)), Err(Denial::Stale));
-    assert_eq!(host.trace, ["prepare", "cancel", "consume", "spawn"]);
-    assert!(host.held.is_none() && host.spawned.is_empty());
+    assert_eq!(host.trace, ["prepare", "cancel", "take"]);
+    assert!(host.spawned.is_empty());
+    assert_eq!(host.held.as_deref(), Some(STATE));
 }
 
 #[test]

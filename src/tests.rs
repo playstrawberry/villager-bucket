@@ -1,9 +1,6 @@
 use crate::{
-    appearance,
-    exchange::{self, BucketHost, EventKey},
-    host::PinnedSdk,
-    lang,
-    policy::{self, Denial, Face, Hand, Interaction, Item, Plan, Target},
+    appearance, lang,
+    policy::{self, Denial, Face, Hand, Interaction, Item, Plan, Refusal, Target},
 };
 
 fn capture() -> Interaction {
@@ -228,12 +225,26 @@ fn invalid_and_overflowing_block_positions_are_refused() {
 }
 
 #[test]
-fn pinned_sdk_cannot_modify_items_or_entities() {
-    assert_eq!(
-        exchange::handle(&mut PinnedSdk, EventKey(1)),
-        Err(Denial::Unsupported)
-    );
-    assert_eq!(PinnedSdk.try_remove(&()), Err(Denial::Unsupported));
+fn every_refusal_the_player_should_hear_has_a_catalog_entry() {
+    let told = [
+        Denial::Permission,
+        Denial::Full,
+        Denial::Invalid,
+        Denial::Obstructed,
+        Denial::Protected,
+        Denial::Refused(Refusal::Damaged),
+        Denial::Refused(Refusal::Cancelled),
+    ];
+    for denial in told {
+        let key = denial.message().expect("a message");
+        for (locale, _) in lang::FILES {
+            assert_ne!(lang::text(locale, key), key, "{locale} {key}");
+        }
+    }
+    // Who cancelled explains it; a stale click needs no word.
+    for silent in [Denial::Cancelled, Denial::Stale, Denial::Unsupported] {
+        assert_eq!(silent.message(), None);
+    }
 }
 
 #[test]
@@ -295,9 +306,9 @@ fn plugin_metadata_requires_only_the_shared_model_plugin() {
     let metadata = crate::VillagerBucket::new().metadata();
     assert_eq!(metadata.name, "villager-bucket");
     assert_eq!(metadata.version, env!("CARGO_PKG_VERSION"));
+    // Reading a stack's model id (`custom_models_api::model_id`) needs no permission.
     assert!(metadata.permissions.is_empty());
     assert_eq!(metadata.dependencies, ["custom-models"]);
-    assert_eq!(crate::host::require_support(), Err(Denial::Unsupported));
 }
 
 #[test]

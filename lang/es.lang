@@ -1,8 +1,14 @@
 description=Transporta un villager en un bucket.
 permission=Capturar y liberar un villager con un bucket.
-blocked=Villager Bucket no está habilitado: esta versión aún necesita snapshots completos del villager y su retirada verificada. No se ha modificado ningún villager ni item.
 bucket_name=Villager en un Bucket
 bucket_lore=Haz clic derecho en un block para liberar este villager.
 bucket_state=Este bucket conserva los datos originales del villager.
 limit_crash=Un crash del servidor después de retirar al villager y antes de entregar el bucket puede causar la pérdida de ese villager.
 limit_creative=Una copia en creative mode de un bucket ocupado puede crear otro villager. Esto está permitido.
+denied_permission=No puedes capturar ni liberar villagers con un bucket.
+denied_full=Primero haz sitio en tu inventario. El villager no se ha capturado.
+denied_invalid=Este bucket no se puede usar así. No se ha cambiado nada.
+denied_obstructed=No hay sitio para el villager ahí. Conservas el bucket.
+denied_protected=Este villager no se puede capturar.
+refused_damaged=No se pudo liberar el villager: los datos de este bucket están dañados o se han cambiado. Conservas el bucket.
+refused_cancelled=No se pudo liberar el villager aquí: el servidor no lo ha permitido. Conservas el bucket.

@@ -1,8 +1,14 @@
 description=Bir villager'ı bucket içinde taşı.
 permission=Bucket ile villager'i al ve geri birak.
-blocked=Villager Bucket etkin değil: bu build için eksiksiz villager snapshot ve sonucu doğrulanan kaldırma desteği gerekiyor. Hiçbir villager veya item değiştirilmedi.
 bucket_name=Bucket İçinde Villager
 bucket_lore=Bu villager'ı bırakmak için bir block'a sağ tıkla.
 bucket_state=Bu bucket villager'ın kayıtlı durumunu aynen korur.
 limit_crash=Villager kaldırıldıktan sonra bucket verilmeden server crash olursa o villager kaybolabilir.
 limit_creative=Creative mode ile dolu bucket kopyalanırsa başka bir villager oluşabilir. Buna izin verilir.
+denied_permission=Bucket ile villager alma ve bırakma iznin yok.
+denied_full=Önce envanterinde yer aç. Villager alınmadı.
+denied_invalid=Bu bucket bu şekilde kullanılamaz. Hiçbir şey değişmedi.
+denied_obstructed=Orada villager için yer yok. Bucket sende kaldı.
+denied_protected=Bu villager alınamaz.
+refused_damaged=Villager bırakılamadı: bu bucket'taki veri bozuk ya da değiştirilmiş. Bucket sende kaldı.
+refused_cancelled=Villager burada bırakılamadı: server buna izin vermedi. Bucket sende kaldı.

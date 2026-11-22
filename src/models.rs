@@ -1,6 +1,6 @@
 //! The shared model service owns item components and pack construction.
 
-use custom_models_api::{Error, ErrorKind, Model, Registered};
+use custom_models_api::{Behaviour, Error, ErrorKind, Model, Registered};
 use strawberry_plugin_api::{ItemStack, Player};
 
 pub const PLUGIN: &str = custom_models_api::PLUGIN;
@@ -55,6 +55,9 @@ impl Models {
             base: Some("minecraft:paper"),
             stack: Some(1),
             files: FILES,
+            wear: None,
+            behaviour: Behaviour::NONE,
+            variant_of: None,
         };
         let id = format!("{owner}.{NAME}");
         let result = register(&model).ok().filter(|model| model.id == id);

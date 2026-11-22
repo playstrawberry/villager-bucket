@@ -53,22 +53,6 @@ fn installed_plugin_registers_its_model_instead_of_using_a_platform_builtin() {
 }
 
 #[test]
-fn load_registers_before_reporting_unavailable_entity_support() {
-    let called = Cell::new(false);
-    assert_eq!(
-        crate::initialize(|_| {
-            called.set(true);
-            Ok(Registered {
-                id: ID.into(),
-                ready: false,
-            })
-        }),
-        Err(crate::lang::text("en", "blocked"))
-    );
-    assert!(called.get());
-}
-
-#[test]
 fn pending_content_selects_vanilla_on_the_services_explicit_unavailable_answer() {
     let models = connected(false);
     assert!(models.registered());
