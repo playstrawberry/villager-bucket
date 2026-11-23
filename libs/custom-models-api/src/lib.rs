@@ -28,6 +28,10 @@
 //!
 //! The look of a server is named once too and comes out for Java and Bedrock: [`retexture`] a
 //! vanilla block, [`sound`], and a language [`line`].
+//! An interface drawn with images and its own letters registers them with [`fonts`] (Java only).
+//! Armour with its own look registers the look with [`armour`] and then the items that wear it
+//! ([`Model::wear`]), with what they give ([`Behaviour`]: protection, durability, repair, the equip
+//! sound); a whole set at once with [`armour_set`], any models at once with [`register_all`].
 //! A solid block with its own look, placed with its item, is a [`block`] ([`Block`]).
 //! A plugin with a valuable item treats anything but `Ok` as "give nothing".
 
@@ -1312,6 +1316,279 @@ pub fn line(name: &str, texts: &Texts<'_>) -> Result<String, Error> {
     Ok(field(&fields, 0)?.to_owned())
 }
 
+/// The registered interface fonts of your plugin.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegisteredFonts {
+    /// The id for [`ready`]: `<your plugin>.fonts`.
+    pub id: String,
+    /// Where the fonts are in the server's pack: images and moves in the font
+    /// `<namespace>:<prefix>/ui`.
+    pub namespace: String,
+    pub prefix: String,
+    /// Whether players already get them (in the server's resource pack). Until then a text in
+    /// these fonts would show as empty boxes: draw the interface without them.
+    pub ready: bool,
+}
+
+/// The bytes of a `fonts` request: the letters of each sheet's boxes, each place, then the images.
+///
+/// ```text
+/// fonts
+/// space.letters=4
+/// row.letters=ABCDEFGH
+/// row.letters=IJKLMNOP
+/// place=image panel -6
+/// place=sheet letters 14
+///
+/// image/panel.png 1234
+/// <1234 bytes>
+/// sheet/letters.png 567
+/// <567 bytes>
+/// ```
+pub fn fonts_request(request: &font::Request<'_>) -> Result<Vec<u8>, Error> {
+    fonts_request_with(request, &[])
+}
+
+/// A picture of the game's own interface that a fonts request replaces in the server's pack: a
+/// boss bar's two sprites (`boss_bar/<colour>_background`, `boss_bar/<colour>_progress`), 182 x 5.
+/// custom-models takes no other name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Sprite<'a> {
+    /// The sprite's name below `textures/gui/sprites/`, without `.png`.
+    pub name: &'a str,
+    pub png: &'a [u8],
+}
+
+/// [`fonts_request`] with sprites: after the fonts' images and sheets, each one as a
+/// `sprite/<name>.png` file. A request may carry sprites and no places at all.
+pub fn fonts_request_with(
+    request: &font::Request<'_>,
+    sprites: &[Sprite<'_>],
+) -> Result<Vec<u8>, Error> {
+    fonts_request_full(request, sprites, &[])
+}
+
+/// The one text of the game a fonts request may empty: the word the game writes over every chest,
+/// furnace and inventory window.
+pub const INVENTORY_WORD: &str = "container.inventory";
+
+/// [`fonts_request_with`] and the game's texts to empty, each as a line `empty_text=<key>` in the
+/// settings: custom-models then puts a lang file holding that key as `""` into the server's pack for
+/// every language the game has, so every other text stays the game's. It takes no key but
+/// [`INVENTORY_WORD`]. A request without the line is what it was before.
+pub fn fonts_request_full(
+    request: &font::Request<'_>,
+    sprites: &[Sprite<'_>],
+    empty_texts: &[&str],
+) -> Result<Vec<u8>, Error> {
+    use font::Place;
+    let mut settings = "fonts\n".to_owned();
+    for key in empty_texts {
+        word_safe(key, "a text's key")?;
+        settings.push_str(&format!("empty_text={key}\n"));
+    }
+    for sheet in &request.sheets {
+        word_safe(sheet.name, "a sheet's name")?;
+        settings.push_str(&format!("space.{}={}\n", sheet.name, sheet.space));
+        for row in &sheet.rows {
+            if row.contains(['\n', '\r']) {
+                return Err(invalid("a row of letters has no line breaks"));
+            }
+            settings.push_str(&format!("row.{}={row}\n", sheet.name));
+        }
+    }
+    for place in &request.places {
+        let (kind, name, top) = match place {
+            Place::Image { image, top } => ("image", image, top),
+            Place::Sheet { sheet, top } => ("sheet", sheet, top),
+        };
+        word_safe(name, "a place's name")?;
+        settings.push_str(&format!("place={kind} {name} {top}\n"));
+    }
+    let mut out = settings.into_bytes();
+    out.push(b'\n');
+    let images = request.images.iter().map(|i| ("image", i.name, i.png));
+    let sheets = request.sheets.iter().map(|s| ("sheet", s.name, s.png));
+    for (kind, name, png) in images.chain(sheets) {
+        word_safe(name, "an image's name")?;
+        out.extend_from_slice(format!("{kind}/{name}.png {}\n", png.len()).as_bytes());
+        out.extend_from_slice(png);
+    }
+    for sprite in sprites {
+        word_safe(sprite.name, "a sprite's name")?;
+        out.extend_from_slice(
+            format!("sprite/{}.png {}\n", sprite.name, sprite.png.len()).as_bytes(),
+        );
+        out.extend_from_slice(sprite.png);
+    }
+    Ok(out)
+}
+
+/// Registers the images and letter sheets your plugin draws an interface with (a window's panel,
+/// its labels), replacing the ones it registered before. Java only: fonts do not exist on Bedrock.
+/// Call it when the plugin loads, never at tick time: the request carries the images.
+pub fn fonts(request: &font::Request<'_>) -> Result<RegisteredFonts, Error> {
+    fonts_with_sprites(request, &[])
+}
+
+/// [`fonts`] with the game's own sprites the interface needs replaced (see [`Sprite`]). Without
+/// places the request is only its sprites.
+pub fn fonts_with_sprites(
+    request: &font::Request<'_>,
+    sprites: &[Sprite<'_>],
+) -> Result<RegisteredFonts, Error> {
+    fonts_full(request, sprites, &[])
+}
+
+/// [`fonts_with_sprites`] and the game's texts to empty (see [`fonts_request_full`]). The server
+/// owner approves them in the server panel like every other file that changes the game's own.
+pub fn fonts_full(
+    request: &font::Request<'_>,
+    sprites: &[Sprite<'_>],
+    empty_texts: &[&str],
+) -> Result<RegisteredFonts, Error> {
+    let fields = ask(&fonts_request_full(request, sprites, empty_texts)?)?;
+    Ok(RegisteredFonts {
+        id: field(&fields, 0)?.to_owned(),
+        namespace: field(&fields, 1)?.to_owned(),
+        prefix: field(&fields, 2)?.to_owned(),
+        ready: field(&fields, 3)? == "ready",
+    })
+}
+
+/// A registered character.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegisteredCharacter {
+    /// The id for [`ready`]: `<your plugin>.<name>`.
+    pub id: String,
+    /// Its name in the server's pack.
+    pub name: String,
+    /// Whether players already get its pieces (in the server's resource pack). Until then a piece
+    /// would show as a missing model: do not show the character.
+    pub ready: bool,
+}
+
+/// The bytes of a `character` request: the line `character <name>` and the one file
+/// `model.bbmodel`.
+pub fn character_request(name: &str, bbmodel: &[u8]) -> Result<Vec<u8>, Error> {
+    word_safe(name, "a character's name")?;
+    Ok(with_files(
+        format!("character {name}\n"),
+        &[("model.bbmodel", bbmodel)],
+    ))
+}
+
+/// Registers a character with limbs that move: a Blockbench project (`.bbmodel`, the format
+/// Generic Model, textures embedded), replacing the one registered under this name before. Each
+/// piece that moves becomes an item model in the server's Java pack. Give it a body with [`mob`]:
+/// custom-models then plays its animations by what the mob does. A Bedrock player does not see it
+/// yet. Call it when the plugin loads, never at tick time: the request carries the file.
+pub fn character(name: &str, bbmodel: &[u8]) -> Result<RegisteredCharacter, Error> {
+    let fields = ask(&character_request(name, bbmodel)?)?;
+    Ok(RegisteredCharacter {
+        id: field(&fields, 0)?.to_owned(),
+        name: field(&fields, 1)?.to_owned(),
+        ready: field(&fields, 2)? == "ready",
+    })
+}
+
+/// A layer of an armour look, in vanilla's names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Layer {
+    /// A humanoid's head, chest and feet armour (a player, a zombie, an armour stand).
+    Humanoid,
+    /// A humanoid's leggings.
+    HumanoidLeggings,
+    /// Elytra-like wings on the chest (the item also needs the `glider` component).
+    Wings,
+    /// Wolf armour.
+    WolfBody,
+    /// Horse armour.
+    HorseBody,
+    /// A llama's carpet.
+    LlamaBody,
+}
+
+impl Layer {
+    /// Java's name of the layer: the picture's name in the request.
+    #[must_use]
+    pub const fn word(self) -> &'static str {
+        match self {
+            Self::Humanoid => "humanoid",
+            Self::HumanoidLeggings => "humanoid_leggings",
+            Self::Wings => "wings",
+            Self::WolfBody => "wolf_body",
+            Self::HorseBody => "horse_body",
+            Self::LlamaBody => "llama_body",
+        }
+    }
+}
+
+/// An armour look: the pictures an item worn in an armour slot is drawn with, in vanilla's layout.
+#[derive(Debug, Clone, Copy)]
+pub struct Armour<'a> {
+    /// `[a-z0-9_]`, 1 to 48 characters. Its id becomes `<your plugin>.<name>`.
+    pub name: &'a str,
+    /// One picture per layer: `Humanoid` (head, chest and feet; 64 x 32), `HumanoidLeggings`
+    /// (64 x 32), `Wings` (64 x 32), `WolfBody` (64 x 32), `HorseBody` (64 x 64), `LlamaBody`
+    /// (128 x 64); 2 or 4 times those sizes for more detail.
+    pub layers: &'a [(Layer, &'a [u8])],
+    /// A dyed item (`dyed_color`) tints the look.
+    pub dyeable: bool,
+    /// The colour of an undyed item, `0xRRGGBB` (makes it dyeable); without it an undyed item
+    /// shows no look, as in vanilla.
+    pub undyed: Option<u32>,
+}
+
+/// A registered armour look.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegisteredArmour {
+    /// The id for [`ready`]: `<your plugin>.<name>`.
+    pub id: String,
+    /// What an item's `equippable.asset_id` names: custom-models sets it on the items that wear
+    /// the look; an item you make yourself can name it too.
+    pub asset_id: String,
+    /// Whether players already get it (in the server's resource pack).
+    pub ready: bool,
+}
+
+/// The bytes of an `armour` request.
+pub fn armour_request(armour: &Armour<'_>) -> Result<Vec<u8>, Error> {
+    word_safe(armour.name, "an armour look's name")?;
+    let mut settings = format!("armour {}\n", armour.name);
+    if armour.dyeable {
+        settings.push_str("dyeable=true\n");
+    }
+    if let Some(colour) = armour.undyed {
+        if colour > 0x00ff_ffff {
+            return Err(invalid("an undyed colour is 0xRRGGBB"));
+        }
+        settings.push_str(&format!("undyed=#{colour:06X}\n"));
+    }
+    let names: Vec<String> = armour
+        .layers
+        .iter()
+        .map(|(layer, _)| format!("{}.png", layer.word()))
+        .collect();
+    let files: Vec<(&str, &[u8])> = names
+        .iter()
+        .zip(armour.layers)
+        .map(|(name, (_, png))| (name.as_str(), *png))
+        .collect();
+    Ok(with_files(settings, &files))
+}
+
+/// Registers (or replaces) an armour look. Register it before the models that wear it, when the
+/// plugin loads: the request carries the pictures.
+pub fn armour(armour: &Armour<'_>) -> Result<RegisteredArmour, Error> {
+    let fields = ask(&armour_request(armour)?)?;
+    Ok(RegisteredArmour {
+        id: field(&fields, 0)?.to_owned(),
+        asset_id: field(&fields, 1)?.to_owned(),
+        ready: field(&fields, 2)? == "ready",
+    })
+}
+
 /// Whether what you registered under `id` (a model, a retexture, a sound, a line, your fonts, a
 /// character, an armour look) is
 /// in the resource pack players get by now.
@@ -1759,6 +2036,9 @@ mod tests {
         }
     }
 }
+
+/// The images, sheets and places of a [`fonts`] request.
+pub mod font;
 
 /// Recipes for model items (`recipe` requests).
 mod recipe;

@@ -11,9 +11,9 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-strawberry-plugin-api = { version = "=0.2.2", registry = "strawberry" }
-custom-models-api = { path = "libs/custom-models-api" }
+strawberry-plugin-api = { version = "=0.2.3", registry = "strawberry" }
+strawberry-tools = { path = "libs/strawberry-tools" }
 
 # A repository of its own, not a member of a larger workspace.
 [workspace]
-members = ["libs/custom-models-api"]
+members = ["libs/custom-models-api", "libs/strawberry-tools"]

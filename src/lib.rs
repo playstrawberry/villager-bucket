@@ -33,10 +33,10 @@ struct VillagerBucket;
 fn initialize(
     context: &Context,
     register: impl FnOnce(
-        &custom_models_api::Model<'_>,
+        &strawberry_tools::models::Model<'_>,
     ) -> std::result::Result<
-        custom_models_api::Registered,
-        custom_models_api::Error,
+        strawberry_tools::models::Registered,
+        strawberry_tools::models::Error,
     >,
 ) -> Result<()> {
     let models = models::Models::connect_with("villager-bucket", register);
@@ -56,14 +56,14 @@ impl Plugin for VillagerBucket {
             authors: vec!["Strawberry Interactive LLC".into()],
             description: lang::text("en", "description"),
             dependencies: vec![models::PLUGIN.into()],
-            // None: `custom_models_api::model_id` only reads a stack's model id
+            // None: `strawberry_tools::models::model_id` only reads a stack's model id
             // (`content.item-id`), which needs no permission; custom-models writes the pack.
             permissions: Vec::new(),
         }
     }
 
     fn on_load(&self, context: Context) -> Result<()> {
-        initialize(&context, custom_models_api::register)
+        initialize(&context, strawberry_tools::models::register)
     }
 }
 

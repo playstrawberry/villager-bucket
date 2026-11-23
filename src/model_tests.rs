@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use custom_models_api::{Error, ErrorKind, Registered};
+use strawberry_tools::models::{Error, ErrorKind, Registered};
 
 use crate::models::{Delivery, Models, Place, VisualId};
 
@@ -38,7 +38,7 @@ fn installed_plugin_registers_its_model_instead_of_using_a_platform_builtin() {
         for (locale, text) in model.names {
             assert_eq!(*text, crate::lang::text(locale, "bucket_name"));
         }
-        let request = custom_models_api::model_request(model).unwrap();
+        let request = strawberry_tools::models::model_request(model).unwrap();
         assert!(request.starts_with(b"model villager_bucket\n"));
         assert!(!request.windows(4).any(|part| part == b"use "));
         Ok(Registered {

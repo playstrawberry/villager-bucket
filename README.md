@@ -4,18 +4,18 @@ Carry a villager in a bucket without losing its identity or saved state.
 
 A script for Play Strawberry servers, by Strawberry Interactive LLC. Its texts are in English, French, Spanish and Turkish.
 
+## An example of working with Play Strawberry's tools
 
-## An example of working with custom-models
+Play Strawberry runs a model tool on every server for items with their own look. The tool itself is not part of this
+repository, and neither is how it builds the resource pack. This script shows how another script uses it:
 
-Play Strawberry has a script, `custom-models`, for items with their own look. That script is not part of this repository,
-and neither is how it builds the resource pack. This script shows how another script works with it:
-
-- `libs/custom-models-api` is the typed calls a script sends to `custom-models`: the model it registers, the item it gives
-  to a player, the model id it reads from a stack. It holds no code of `custom-models` itself.
+- `libs/strawberry-tools` is the public calling side of the tools: its `models` module builds the requests a script
+  sends to the model tool (the model it registers, the item it gives to a player, the model id it reads from a stack) and
+  its `ui` module the menus and dialogs of the interface tool. It holds no code of either tool.
 - `src/models.rs` registers one model when the script loads: a name, its names in four languages, a texture, the base
   item and the stack size. Once the model is registered and in the server's resource pack, `give` and `hand` hand the item
   to a player; `model_id` tells whether a stack is the script's own.
-- When `custom-models` is not on the server, or the model is not in the pack yet, the script falls back to a plain bucket
+- When the model tool is not on the server, or the model is not in the pack yet, the script falls back to a plain bucket
   item and nothing is lost: every call answers an error kind the caller can act on.
 
 ## Install on a Play Strawberry server

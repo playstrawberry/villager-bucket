@@ -306,7 +306,7 @@ fn plugin_metadata_requires_only_the_shared_model_plugin() {
     let metadata = crate::VillagerBucket::new().metadata();
     assert_eq!(metadata.name, "villager-bucket");
     assert_eq!(metadata.version, env!("CARGO_PKG_VERSION"));
-    // Reading a stack's model id (`custom_models_api::model_id`) needs no permission.
+    // Reading a stack's model id (`strawberry_tools::models::model_id`) needs no permission.
     assert!(metadata.permissions.is_empty());
     assert_eq!(metadata.dependencies, ["custom-models"]);
 }

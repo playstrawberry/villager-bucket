@@ -1,9 +1,9 @@
 //! The shared model service owns item components and pack construction.
 
-use custom_models_api::{Behaviour, Error, ErrorKind, Model, Registered};
+use strawberry_tools::models::{Behaviour, Error, ErrorKind, Model, Registered};
 use strawberry_plugin_api::{ItemStack, Player};
 
-pub const PLUGIN: &str = custom_models_api::PLUGIN;
+pub const PLUGIN: &str = strawberry_tools::models::PLUGIN;
 pub const NAME: &str = "villager_bucket";
 const FILES: &[(&str, &[u8])] = &[(
     "texture.png",
@@ -96,7 +96,7 @@ impl Models {
     }
 
     pub fn give_visual(&self, player: &Player) -> Result<Delivery, ErrorKind> {
-        self.give_with(|id| custom_models_api::give(player, id, 1))
+        self.give_with(|id| strawberry_tools::models::give(player, id, 1))
     }
 
     /// The caller must validate the actual hand and its empty bucket first.
@@ -116,7 +116,7 @@ impl Models {
     }
 
     pub fn hand_visual(&self, player: &Player, off: bool) -> Result<Delivery, ErrorKind> {
-        self.hand_with(off, |id, off| custom_models_api::hand(player, off, id, 1))
+        self.hand_with(off, |id, off| strawberry_tools::models::hand(player, off, id, 1))
     }
 
     /// The visible/copyable model id is not a persisted villager record.
@@ -129,7 +129,7 @@ impl Models {
     }
 
     pub fn identify(&self, stack: &ItemStack) -> VisualId {
-        self.identify_id(custom_models_api::model_id(stack).as_deref())
+        self.identify_id(strawberry_tools::models::model_id(stack).as_deref())
     }
 }
 

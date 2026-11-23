@@ -1,0 +1,13 @@
+[package]
+name = "strawberry-tools"
+version = "0.1.0"
+edition = "2024"
+description = "Play Strawberry's tools for your script: register items, textures, models and animated characters with the model tool, and show menus and dialogs with the interface tool. Only the calling side: it builds the requests and reads the answers."
+authors = ["Strawberry Interactive LLC"]
+license = "LicenseRef-Strawberry-Source-Available-1.0"
+publish = false
+
+[dependencies]
+custom-models-api = { path = "../custom-models-api" }
+serde_json = { version = "1", default-features = false, features = ["std"] }
+strawberry-plugin-api = { version = "=0.2.3", registry = "strawberry" }
